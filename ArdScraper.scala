@@ -10,6 +10,7 @@ import java.io.StringReader
 import scala.collection.immutable.Seq
 import java.text.SimpleDateFormat
 import java.util.Date
+import swing._
 
 object ArdScraper {
   val baseUrl = "http://www.ardmediathek.de"
@@ -177,3 +178,76 @@ object TagSoupXmlLoader {
     XML.withSAXParser(factory.newSAXParser())
   }
 }
+
+
+// Für Papa
+object ScraperGUI extends SimpleSwingApplication {
+  def top = new MainFrame {
+    title = "Download-links für Sendungen finden"
+    val sendungNameF = new TextField {
+      text = "Tatort"
+      columns = 15
+    }
+    val sendungFilterF = new TextField {
+      text = ""
+      columns = 15
+    }
+    val search = Button ("Suchen") {
+      printFiltered(sendungNameF.text, sendungFilterF.text)
+    }
+    contents = new GridPanel(3,2) {
+      contents += new Label("Sendungsname: ")
+      contents += sendungNameF
+      contents += new Label("Zusätzlicher Filter: ")
+      contents += sendungFilterF
+      contents += search
+    }
+  }
+
+  def printFiltered(sendungName : String, titleFilter: String) = {
+    val mediaStreams = for (
+      mi @ MediaItem(title, url, airtime) <- ArdScraper.getMediaItems(sendungName);
+      if title.toLowerCase().contains(titleFilter.toLowerCase());
+      line <- (ArdScraper.getTreeFromURL(ArdScraper.baseUrl + url) \\ "script").text.split("\n");
+      ms <- ArdScraper.parseMediaStream(line);
+      if (ms.quality >= 2)
+    ) yield (mi, ms)
+    val sorted = mediaStreams.sortBy(-_._2.quality).sortBy(-_._2.itemIndex)
+    import ListView._
+    val view = new ListView(sorted) {
+      renderer = Renderer(itm => {
+        itm match {
+          case (MediaItem(title, _, _), MediaStream(_,quality,url)) =>
+            title
+        }
+      })
+    }
+    val resultWindow = new Frame {
+      title = "Suche nach Sendung: " + sendungName + " Filter: " + titleFilter
+      contents = new BorderPanel {
+        add(view, BorderPanel.Position.Center)
+        add(Button ("Download") {
+          download(sorted(view.selection.leadIndex))
+        }, BorderPanel.Position.South)
+      }
+    }
+    resultWindow.visible = true
+  }
+
+  def download(itm : (MediaItem, MediaStream)) = {
+    import sys.process.Process
+    itm match {
+      case (MediaItem(title, _, _), MediaStream(_,_,url)) => {
+        val filename = "/tmp/downloadCmd.command"
+        val out = new java.io.FileWriter(filename, false)
+        out.write("cd ~/Movies\n")
+        out.write("curl -O " + url + "\n")
+        out.close
+
+        Process("chmod", Seq("a+x", filename)).run()
+        Process("open", Seq("-a", "Terminal", filename)).run()
+      }
+    }
+  }
+}
+
