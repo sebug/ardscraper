@@ -118,18 +118,29 @@ object ArdScraper {
     }
   }
 
+  def getMediaItems (sendungName : String) : Seq[MediaItem] = {
+      val linkOption = for {
+        sendungenLink <- linkFromURL(baseUrl + "/fernsehen") { _.text.indexOf("Sendungen A-Z") >= 0 };
+        indexLink <- linkFromURL(baseUrl + sendungenLink) { _.text.indexOf(sendungName(0).toUpper) == 0 };
+        sendungLink <- linkFromURL(baseUrl + indexLink) { _.text.indexOf(sendungName) >= 0 }
+      } yield sendungLink
+      linkOption match {
+        case None => Seq.empty
+        case Some(sendungLink) =>
+          for {
+            switchLink <- switchLinks(baseUrl + sendungLink);
+            mediaItemNode <- mediaItems(baseUrl + switchLink.replace("view=switch", "view=list"));
+            mediaItem <- parseMediaItem(mediaItemNode)
+          } yield mediaItem
+      }
+  }
+
   def main(args : Array[String]) {
     if (args.length < 2) println("Bitte Sendungsname und Titelstichwort als Argumente eingeben")
     else {
-      val sendungName = args(0)
       val titleFilter = args(1)
       for (
-        sendungenLink <- linkFromURL(baseUrl + "/fernsehen") { _.text.indexOf("Sendungen A-Z") >= 0 };
-        indexLink <- linkFromURL(baseUrl + sendungenLink) { _.text.indexOf(sendungName(0).toUpper) == 0 };
-        sendungLink <- linkFromURL(baseUrl + indexLink) { _.text.indexOf(sendungName) >= 0 };
-        switchLink <- switchLinks(baseUrl + sendungLink);
-        mediaItemNode <- mediaItems(baseUrl + switchLink.replace("view=switch", "view=list"));
-        mediaItem <- parseMediaItem(mediaItemNode)
+        mediaItem <- getMediaItems(args(0))
       ) {
         mediaItem match {
           case MediaItem(title, url, airtime) => {
