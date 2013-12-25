@@ -54,4 +54,9 @@
       <include name="*.scala" />
     </scalac>
   </target>
+  <target name="package" depends="build">
+    <jar destfile="ardscraper.jar">
+      <fileset dir="${build.dir}" />
+    </jar>
+  </target>
 </project>
