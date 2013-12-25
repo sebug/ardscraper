@@ -7,17 +7,19 @@ that isn't very useful, but the screenscraping stuff is informative.
 
 compile with
 
-scalac -cp jars/tagsoup-1.2.1.jar ArdScraper.scala
+ant
 
 Example usage:
 
-scala -cp .:jars/tagsoup-1.2.1.jar Weekend "Tatort" "Granit"
+scala -cp build:jars/tagsoup-1.2.1.jar ArdScraper "Tatort" "Granit"
 
 output:
 
 http://mvideos.daserste.de/videoportal/Film/c_370000/374425/format579609.mp4
 
 which you can then fetch, for example, with curl -O
+
+I also did a small launchable app. This requires the java application bundler https://java.net/projects/appbundler/downloads
 
 Deutsch
 -------
