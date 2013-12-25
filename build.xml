@@ -57,6 +57,9 @@
   <target name="package" depends="build">
     <jar destfile="ardscraper.jar">
       <fileset dir="${build.dir}" />
+      <manifest>
+	<attribute name="Main-Class" value="ScraperGUI" />
+      </manifest>
     </jar>
   </target>
 </project>
